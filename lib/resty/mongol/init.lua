@@ -1,50 +1,51 @@
 module("resty.mongol", package.seeall)
 
-local mod_name = (...)
+local mod_name      = (...)
 
-local assert , pcall = assert , pcall
-local ipairs , pairs = ipairs , pairs
-local setmetatable = setmetatable
+local assert, pcall = assert, pcall
+local ipairs, pairs = ipairs, pairs
+local setmetatable  = setmetatable
 
-local socket = ngx.socket.tcp
+local socket        = ngx.socket.tcp
 
-local connmethods = { }
-local connmt = { __index = connmethods }
+local connmethods   = { }
+local connmt        = { __index = connmethods }
 
-local dbmt = require ( mod_name .. ".dbmt" )
+local dbmt          = require(mod_name .. ".dbmt")
 
 function connmethods:ismaster()
-    local db = self:new_db_handle("admin")
-    local r, err = db:cmd({ismaster = true}) 
+    local db     = self:new_db_handle("admin")
+    local r, err = db:cmd({ ismaster = true })
     if not r then
         return nil, err
     end
     return r.ismaster, r.hosts
 end
 
-local function parse_host ( str )
-    local host , port = str:match ( "([^:]+):?(%d*)" )
-    port = port or 27017
-    return host , port
+local function parse_host (str)
+    local host, port = str:match("([^:]+):?(%d*)")
+    port             = port or 27017
+    return host, port
 end
 
-function connmethods:getprimary ( searched )
-    searched = searched or { [ self.host .. ":" .. self.port ] = true }
+function connmethods:getprimary (searched)
+    searched     = searched or { [self.host .. ":" .. self.port] = true }
 
-    local db = self:new_db_handle("admin")
+    local db     = self:new_db_handle("admin")
     local r, err = db:cmd({ ismaster = true })
     if not r then
-        return nil, "query admin failed: "..err
-    elseif r.ismaster then return self 
+        return nil, "query admin failed: " .. err
+    elseif r.ismaster then
+        return self
     else
-        for i , v in ipairs ( r.hosts ) do
+        for i, v in ipairs(r.hosts) do
             if not searched[v] then
-                searched[v] = true
+                searched[v]      = true
                 local host, port = parse_host(v)
-                local conn = new()
-                local ok, err = conn:connect(host, port)
+                local conn       = new()
+                local ok, err    = conn:connect(host, port)
                 if not ok then
-                    return nil, "connect failed: "..err..v
+                    return nil, "connect failed: " .. err .. v
                 end
 
                 local found = conn:getprimary(searched)
@@ -54,29 +55,29 @@ function connmethods:getprimary ( searched )
             end
         end
     end
-    return nil , "No master server found"
+    return nil, "No master server found"
 end
 
 function connmethods:databases()
     local db = self:new_db_handle("admin")
-    local r = assert ( db:cmd({ listDatabases = true } ))
+    local r  = assert(db:cmd({ listDatabases = true }))
     return r.databases
 end
 
 function connmethods:shutdown()
     local db = self:new_db_handle("admin")
-    db:cmd({ shutdown = true } )
+    db:cmd({ shutdown = true })
 end
 
-function connmethods:new_db_handle ( db )
+function connmethods:new_db_handle (db)
     if not db then
         return nil
     end
 
-    return setmetatable ( {
-            conn = self ;
-            db = db ;
-        } , dbmt )
+    return setmetatable({
+                            conn = self;
+                            db   = db;
+                        }, dbmt)
 end
 
 function connmethods:set_timeout(timeout)
@@ -107,11 +108,18 @@ function connmethods:get_reused_times()
 end
 
 function connmethods:connect(host, port)
-    self.host = host or self.host
-    self.port = port or self.port
+    self.host  = host or self.host
+    self.port  = port or self.port
     local sock = self.sock
 
     return sock:connect(self.host, self.port)
+end
+
+function connmethods:ssl_handshake(verify)
+    verify = verify == true
+
+    local sock = self.sock
+    return sock:sslhandshake(nil, self.host, verify)
 end
 
 function connmethods:close()
@@ -126,15 +134,15 @@ end
 connmt.__call = connmethods.new_db_handle
 
 function new(self)
-    return setmetatable ( {
-            sock = socket();
-            host = "localhost";
-            port = 27017;
-        } , connmt )
+    return setmetatable({
+                            sock = socket();
+                            host = "localhost";
+                            port = 27017;
+                        }, connmt)
 end
 
 -- to prevent use of casual module global variables
-getmetatable(resty.mongol).__newindex = function (table, key, val)
+getmetatable(resty.mongol).__newindex = function(table, key, val)
     error('attempt to write to undeclared variable "' .. key .. '": '
-            .. debug.traceback())
+                  .. debug.traceback())
 end

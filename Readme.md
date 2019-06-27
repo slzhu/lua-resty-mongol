@@ -29,8 +29,7 @@ or into lua files before requiring.
 
     local p = "/usr/local/openresty/lualib/"
     local m_package_path = package.path
-    package.path = string.format("%s?.lua;%s?/init.lua;%s",
-        p, p, m_package_path)
+    package.path = string.format("%s?.lua;%s?/init.lua;%s", p, p, m_package_path)
 
 Requring the module will return a function that connects to mongod:
 it takes a host (default localhost) and a port (default 27017);
@@ -49,6 +48,11 @@ Default host and port is: `localhost` and `27017`.
 Sets socket connecting, reading, writing timeout value, unit is milliseconds.
 
 In case of success, returns 1. In case of errors, returns nil with a string describing the error.
+
+#### ok,err = conn:ssl_handshake(verify)
+Does SSL/TLS handshake on the currently established connection.
+
+The optional `verify` argument takes a Lua boolean value to control whether to perform SSL verification. `false` by default.
 
 #### ok,err = conn:set_keepalive(msec, pool_size)
 Keeps the socket alive for `msec` by ngx_lua cosocket.
@@ -109,7 +113,7 @@ Returns a collection object for more operations.
 ### Collection objects
 ------------
 
-#### n = col:count(query)
+#### n, err = col:count(query)
 
 #### ok, err = col:drop()
 Returns 1 in case of success, or nil with error message.
@@ -133,7 +137,7 @@ Returns number of rows been deleted, or nil with error message.
  - singleRemove if set to 1, the database will remove only the first matching document in the collection. Otherwise all matching documents will be removed. Default to `0`
  - safe can be a boolean or integer, defaults to `0`. If `1`, the program will issue a cmd `getlasterror` to server to query the result. If `false`, return value `n` would always be `-1`
 
-#### r = col:find_one(query, returnfields)
+#### r, err = col:find_one(query, returnfields)
 Returns a single element array, or nil.
 
  - returnfields is the fields to return, eg: `{n=0}` or `{n=1}`
@@ -144,8 +148,11 @@ Returns a cursor object for excuting query.
  - returnfields is the fields to return, eg: `{n=0}` or `{n=1}`
  - num_each_query is the max result number for each query of the cursor to avoid fetch a large result in memory, must larger than `1`, `0` for no limit, default to `100`.
 
-#### col:getmore(cursor, [numberToReturn])
+#### cursorid, r, t = col:getmore(cursorID | cursor, [numberToReturn])
+Returns cursorID, element array, table of response flags
+
  - cursorID is an 8 byte string representing the cursor to getmore on
+ - cursor is a cursor object
  - numberToReturn is the number of results to return, defaults to -1
 
 #### col:kill_cursors(cursorIDs)
@@ -239,19 +246,19 @@ Known Issues
 
 Example
 ---------------------------
-            local mongo = require "resty.mongol"
-            conn = mongo:new()
-            conn:set_timeout(1000)
-            ok, err = conn:connect()
-            if not ok then
-                ngx.say("connect failed: "..err)
-            end
-
-            local db = conn:new_db_handle ( "test" )
-            col = db:get_col("test")
-
-            r = col:find_one({name="dog"})
-            ngx.say(r["name"])
+    local mongo = require "resty.mongol"
+    conn = mongo:new()
+    conn:set_timeout(1000)
+    ok, err = conn:connect()
+    if not ok then
+        ngx.say("connect failed: "..err)
+    end
+    
+    local db = conn:new_db_handle ( "test" )
+    col = db:get_col("test")
+    
+    r = col:find_one({name="dog"})
+    ngx.say(r["name"])
 
 For Test Case
 --------------------
