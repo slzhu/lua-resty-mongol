@@ -19,6 +19,7 @@ local function new_cursor(col, query, returnfields, num_each_query)
 
             done = false ;
             i = 0;
+            c = 0;
             limit_n = 0;
             num_each = num_each_query;
         } , cursor_mt )
@@ -99,8 +100,10 @@ function cursor_methods:next()
     local v = self.results [ self.i + 1 ]
     if v ~= nil then
         self.i = self.i + 1
+        self.c = self.c + 1
         self.results [ self.i ] = nil
-        return self.i , v
+
+        return self.c , v
     end
 
     if self.done then return nil end
@@ -108,13 +111,14 @@ function cursor_methods:next()
     local t
     if not self.id then
         self.id, self.results, t = self.col:query(self.query, 
-                        self.returnfields, self.i, self.num_each)
+                        self.returnfields, 0, self.num_each)
         if self.id == "\0\0\0\0\0\0\0\0" then
             self.done = true
         end
     else
-        self.id, self.results, t = self.col:getmore(self.id, 
-                        self.num_each, self.i)
+        self.id, self.results, t = self.col:getmore(self.id, self.num_each)
+        self.i = 0
+
         if self.id == "\0\0\0\0\0\0\0\0" then
             self.done = true
         elseif t.CursorNotFound then

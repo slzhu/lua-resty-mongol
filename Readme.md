@@ -1,4 +1,3 @@
-Sorry for long time no maintaining. If you want to continue update it, please contact me.
 
 Name
 ======
@@ -17,28 +16,28 @@ luajit(or `attempt to yield across metamethod/C-call boundary error` will be pro
 Installation
 ======
 
-		make install
+    make install
 
 Usage
 ======
 
 Add package path into nginx.conf.
 
-        lua_package_path '/usr/local/openresty/lualib/?/init.lua;;';
+    lua_package_path '/usr/local/openresty/lualib/?/init.lua;;';
 
 or into lua files before requiring.
 
-        local p = "/usr/local/openresty/lualib/"
-        local m_package_path = package.path
-        package.path = string.format("%s?.lua;%s?/init.lua;%s",
-            p, p, m_package_path)
+    local p = "/usr/local/openresty/lualib/"
+    local m_package_path = package.path
+    package.path = string.format("%s?.lua;%s?/init.lua;%s",
+        p, p, m_package_path)
 
 Requring the module will return a function that connects to mongod:
 it takes a host (default localhost) and a port (default 27017);
 it returns a connection object.
 
-		mongol = require "resty.mongol"
-		conn = mongol:new() -- return a conntion object
+    mongol = require "resty.mongol"
+    conn = mongol:new() -- return a conntion object
 
 ### Connection objects have server wide methods.
 ------------
@@ -80,9 +79,9 @@ The returned connection object may be this connection object itself.
 #### databases = conn:databases ( )
 Returns a table describing databases on the server.
 
-		databases.name: string
-		databases.empty: boolean
-		databases.sizeOnDisk: number
+    databases.name: string
+    databases.empty: boolean
+    databases.sizeOnDisk: number
 
 #### conn:shutdown()
 Shutsdown the server. Returns nothing.
@@ -126,7 +125,7 @@ Returns number of rows been updated or nil for error.
 Returns 0 for success, or nil with error message.
 
  - continue_on_error, if set, the database will not stop processing a bulk insert if one fails (eg due to duplicate IDs).
- - safe can be a boolean or integer, defaults to `0` or `false`. If `1` or ``true`, the program will issue a cmd `getlasterror` to server to query the result. If `false`, return value `n` would always be `-1`
+ - safe can be a boolean or integer, defaults to `0` or `false`. If `1` or `true`, the program will issue a cmd `getlasterror` to server to query the result. If `false`, return value `n` would always be `-1`
 
 #### n, err = col:delete(selector, singleRemove, safe)
 Returns number of rows been deleted, or nil with error message.
@@ -145,10 +144,9 @@ Returns a cursor object for excuting query.
  - returnfields is the fields to return, eg: `{n=0}` or `{n=1}`
  - num_each_query is the max result number for each query of the cursor to avoid fetch a large result in memory, must larger than `1`, `0` for no limit, default to `100`.
 
-#### col:getmore(cursorID, [numberToReturn], [offset_i])
+#### col:getmore(cursor, [numberToReturn])
  - cursorID is an 8 byte string representing the cursor to getmore on
  - numberToReturn is the number of results to return, defaults to -1
- - offset_i is the number to start numbering the returned table from, defaults to 1
 
 #### col:kill_cursors(cursorIDs)
 
@@ -161,7 +159,7 @@ Returns the next item and advances the cursor.
 #### cursor:pairs()
 A handy wrapper around cursor:next() that works in a generic for loop:
 
-		for index, item in cursor:pairs() do
+    for index, item in cursor:pairs() do
 
 #### cursor:limit(n)
 Limits the number of results returned.

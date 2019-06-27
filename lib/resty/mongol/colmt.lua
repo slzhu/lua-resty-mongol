@@ -71,9 +71,7 @@ local function read_msg_header ( sock )
     return length , requestID , reponseTo , opcode
 end
 
-local function handle_reply ( conn , req_id , offset_i )
-    offset_i = offset_i  or 0
-
+local function handle_reply ( conn , req_id)
     local r_len , r_req_id , r_res_id , opcode = read_msg_header ( conn.sock )
     assert ( req_id == r_res_id )
     assert ( opcode == opcodes.REPLY )
@@ -233,12 +231,12 @@ function colmethods:query(query, returnfields, numberToSkip, numberToReturn, opt
     return handle_reply(self.conn, req_id, numberToSkip)
 end
 
-function colmethods:getmore(cursorID, numberToReturn, offset_i)
+function colmethods:getmore(cursorID, numberToReturn)
     local m = "\0\0\0\0" .. full_collection_name(self, self.col) 
-                .. num_to_le_int(numberToReturn or 0) .. cursorID
+                .. num_to_le_int(numberToReturn or 0) .. tostring(cursorID)
 
     local req_id = docmd(self.conn, "GET_MORE" , m)
-    return handle_reply(self.conn, req_id, offset_i)
+    return handle_reply(self.conn, req_id)
 end
 
 function colmethods:count(query)
