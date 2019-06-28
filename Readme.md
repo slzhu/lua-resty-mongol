@@ -246,19 +246,42 @@ Known Issues
 
 Example
 ---------------------------
-    local mongo = require "resty.mongol"
-    conn = mongo:new()
-    conn:set_timeout(1000)
-    ok, err = conn:connect()
-    if not ok then
-        ngx.say("connect failed: "..err)
-    end
-    
-    local db = conn:new_db_handle ( "test" )
-    col = db:get_col("test")
-    
-    r = col:find_one({name="dog"})
-    ngx.say(r["name"])
+```lua
+local mongo = require "resty.mongol"
+
+local conn        = mongo:new()
+conn:set_timeout(1000)
+
+local ok, err = conn:connect("mymongod.com", 12717)
+if not ok then
+    -- handle error
+end
+
+ok, err = conn:ssl_handshake()
+if err then
+    -- handle error
+end
+
+local db = conn:new_db_handle("mydb")
+
+ok, err  = db:auth("myusername", "mypassword")
+if err then
+    -- handle error
+end
+
+local col, err = db:get_col("mycol")
+if err then
+    -- handle error
+end
+
+local r = col:find_one({ name = "dog", age = { ["gt"] = 1, ["lt"] = 5 } }, { _id = 0, name = 1 })
+ngx.say(r["name"])
+
+local cursor = col:find({ name = "dog" }, { _id = 0, name = 1 }, 10)
+for index, item in cursor:pairs() do
+    -- do something
+end
+```
 
 For Test Case
 --------------------
