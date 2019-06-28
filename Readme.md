@@ -23,20 +23,25 @@ Usage
 
 Add package path into nginx.conf.
 
-    lua_package_path '/usr/local/openresty/lualib/?/init.lua;;';
-
+```nginx
+lua_package_path '/usr/local/openresty/lualib/?/init.lua;;';
+```
 or into lua files before requiring.
 
-    local p = "/usr/local/openresty/lualib/"
-    local m_package_path = package.path
-    package.path = string.format("%s?.lua;%s?/init.lua;%s", p, p, m_package_path)
+```lua
+local p = "/usr/local/openresty/lualib/"
+local m_package_path = package.path
+package.path = string.format("%s?.lua;%s?/init.lua;%s", p, p, m_package_path)
+```
 
 Requring the module will return a function that connects to mongod:
 it takes a host (default localhost) and a port (default 27017);
 it returns a connection object.
 
-    mongol = require "resty.mongol"
-    conn = mongol:new() -- return a conntion object
+```lua
+mongol = require "resty.mongol"
+conn = mongol:new() -- return a conntion object
+```
 
 ### Connection objects have server wide methods.
 ------------
@@ -166,7 +171,11 @@ Returns the next item and advances the cursor.
 #### cursor:pairs()
 A handy wrapper around cursor:next() that works in a generic for loop:
 
-    for index, item in cursor:pairs() do
+```lua
+for index, item in cursor:pairs() do
+    
+end
+```
 
 #### cursor:limit(n)
 Limits the number of results returned.
@@ -249,7 +258,7 @@ Example
 ```lua
 local mongo = require "resty.mongol"
 
-local conn        = mongo:new()
+local conn    = mongo:new()
 conn:set_timeout(1000)
 
 local ok, err = conn:connect("mymongod.com", 12717)
