@@ -1,17 +1,19 @@
 module("resty.mongol", package.seeall)
 
-local mod_name      = (...)
+local mod_name     = (...)
 
-local assert, pcall = assert, pcall
-local ipairs, pairs = ipairs, pairs
-local setmetatable  = setmetatable
+local assert       = assert
+local ipairs       = ipairs
+local setmetatable = setmetatable
 
-local socket        = ngx.socket.tcp
+local socket       = ngx.socket.tcp
 
-local connmethods   = { }
-local connmt        = { __index = connmethods }
+---@class MongoConnection
+local connmethods  = { }
+local connmt       = { __index = connmethods }
 
-local dbmt          = require(mod_name .. ".dbmt")
+---@class MongoDBHandle
+local dbmt         = require(mod_name .. ".dbmt")
 
 function connmethods:ismaster()
     local db     = self:new_db_handle("admin")
@@ -69,6 +71,7 @@ function connmethods:shutdown()
     db:cmd({ shutdown = true })
 end
 
+---@return MongoDBHandle
 function connmethods:new_db_handle (db)
     if not db then
         return nil
@@ -116,7 +119,7 @@ function connmethods:connect(host, port)
 end
 
 function connmethods:ssl_handshake(verify)
-    verify = verify == true
+    verify     = verify == true
 
     local sock = self.sock
     return sock:sslhandshake(nil, self.host, verify)
@@ -139,6 +142,53 @@ function new(self)
                             host = "localhost";
                             port = 27017;
                         }, connmt)
+end
+
+---@class MongoProfile
+---@field host string localhost by default
+---@field port number @27017 by default
+---@field tls boolean false by default
+---@field auth_database string same with `database` by default
+---@field use_scram_auth boolean false by default
+---@field username string
+---@field password string
+---@field database string
+
+---@param profile MongoProfile
+---@return MongoConnection, MongoDBHandle, string
+function new_all(profile)
+    ---@type MongoConnection
+    local conn    = setmetatable({
+                                     sock = socket();
+                                     host = "localhost";
+                                     port = 27017;
+                                 }, connmt)
+
+    local ok, err = conn:connect(profile.host, profile.port)
+    if not ok then
+        return nil, nil, "connect to mongod failed: " .. err
+    end
+
+    if profile.tls then
+        ok, err = conn:ssl_handshake(true)
+        if not ok then
+            return nil, nil, "handshake with mongod failed: " .. err
+        end
+    end
+
+    local db          = conn:new_db_handle(profile.auth_database or profile.database)
+    local auth_method = profile.use_scram_auth and db.auth_scram_sha1 or db.auth
+
+    ok, err           = auth_method(db, profile.username, profile.password)
+    if not ok then
+        return nil, nil, "auth to mongod failed: " .. err
+    end
+
+    if profile.auth_database and profile.auth_database ~= profile.database then
+        db = conn:new_db_handle(profile.database)
+    end
+
+    return conn, db
 end
 
 -- to prevent use of casual module global variables
