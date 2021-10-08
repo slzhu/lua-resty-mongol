@@ -6,6 +6,7 @@ local attachpairs_start = misc.attachpairs_start
 local setmetatable = setmetatable
 local pcall = pcall
 
+---@class MongoColHandle
 local colmt = require ( mod_name .. ".colmt" )
 local gridfs = require ( mod_name .. ".gridfs" )
 
@@ -173,6 +174,7 @@ function dbmethods:auth_scram_sha1(username, password)
     return 1
 end
 
+---@return MongoColHandle
 function dbmethods:get_col(collection)
     if not collection then
         return nil, "collection needed"
