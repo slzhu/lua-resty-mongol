@@ -124,7 +124,16 @@ local function pack ( k , v )
 	local mt = getmetatable ( v )
 
 	if ot == "number" then
-		return "\1" .. k .. "\0" .. to_double ( v )
+		-- is signed 64 bit int
+		if math.floor(v) == v and -9223372036854775808 <= v and v <= 9223372036854775807 then
+			if -2147483648 <= v and v <= 2147483647 then
+				return "\16" .. k .. "\0" .. num_to_le_int ( v, 4 )
+			else
+				return "\18" .. k .. "\0" .. num_to_le_int ( v, 8 )
+			end
+		else
+			return "\1" .. k .. "\0" .. to_double ( v )
+		end
 	elseif ot == "nil" then
 		return "\10" .. k .. "\0"
 	elseif ot == "string" then
@@ -140,7 +149,7 @@ local function pack ( k , v )
 	elseif mt == utc_date then
 		return "\9" .. k .. "\0" .. num_to_le_int(v.v, 8)
 	elseif mt == binary_mt then
-		return "\5" .. k .. "\0" .. num_to_le_uint(string.len(v.v)) .. 
+		return "\5" .. k .. "\0" .. num_to_le_uint(string.len(v.v)) ..
                v.st .. v.v
 	elseif ot == "table" then
 		local doc , array = to_bson(v)

@@ -15,7 +15,7 @@ local dbmt = { __index = dbmethods }
 function dbmethods:cmd(q)
     local collection = "$cmd"
     local col = self:get_col(collection)
-    
+
     local c_id , r , t = col:query(q)
 
     if t.QueryFailure then
@@ -48,7 +48,7 @@ end
 
 --  XOR two byte strings together
 local function xor_bytestr( a, b )
-    local res = ""    
+    local res = ""
     for i=1,#a do
         res = res .. string.char(bit.bxor(string.byte(a,i,i), string.byte(b, i, i)))
     end
@@ -81,7 +81,7 @@ function dbmethods:auth(username, password)
     if not r then
         return nil, err
     end
- 
+
     local digest = ngx.md5( r.nonce .. username .. pass_digest ( username , password ) )
 
     r, err = self:cmd(attachpairs_start({
@@ -101,8 +101,8 @@ function dbmethods:auth_scram_sha1(username, password)
     local nonce = ngx.encode_base64(string.sub(tostring(math.random()), 3 , 14))
     local first_bare = "n="  .. user .. ",r="  .. nonce
     local sasl_start_payload = ngx.encode_base64("n,," .. first_bare)
-    
-    r, err = self:cmd(attachpairs_start({
+
+    local r, err = self:cmd(attachpairs_start({
             saslStart = 1 ;
             mechanism = "SCRAM-SHA-1" ;
             autoAuthorize = 1 ;
@@ -111,7 +111,7 @@ function dbmethods:auth_scram_sha1(username, password)
     if not r then
         return nil, err
     end
-    
+
     local conversationId = r['conversationId']
     local server_first = r['payload']
     local parsed_s = ngx.decode_base64(server_first)
@@ -138,7 +138,7 @@ function dbmethods:auth_scram_sha1(username, password)
     local client_final = ngx.encode_base64(without_proof .. ',' .. client_proof)
     local server_key = ngx.hmac_sha1(salted_pass, "Server Key")
     local server_sig = ngx.encode_base64(ngx.hmac_sha1(server_key, auth_msg))
-    
+
     r, err = self:cmd(attachpairs_start({
             saslContinue = 1 ;
             conversationId = conversationId ;
@@ -155,7 +155,7 @@ function dbmethods:auth_scram_sha1(username, password)
     if parsed_t['v'] ~= server_sig then
         return nil, "Server returned an invalid signature."
     end
-    
+
     if not r['done'] then
         r, err = self:cmd(attachpairs_start({
             saslContinue = 1 ;
